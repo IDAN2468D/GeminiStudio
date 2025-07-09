@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:scaleX="0.6"
+        android:scaleY="0.6"
+        android:translateX="21.6"
+        android:translateY="21.6">
+        <!-- Circle background -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,27C41.85,27 32,36.85 32,49C32,61.15 41.85,71 54,71C66.15,71 76,61.15 76,49C76,36.85 66.15,27 54,27Z"/>
+        <!-- G letter -->
+        <path
+            android:fillColor="#2563EB"
+            android:pathData="M61.5,48.5h-7.25v-7.25c0,-0.69 -0.56,-1.25 -1.25,-1.25h-2.5c-0.69,0 -1.25,0.56 -1.25,1.25v11.25c0,0.69 0.56,1.25 1.25,1.25h11.25c0.69,0 1.25,-0.56 1.25,-1.25v-2.5C63,49.06 62.44,48.5 61.5,48.5zM54,27C41.85,27 32,36.85 32,49c0,12.15 9.85,22 22,22c12.15,0 22,-9.85 22,-22h-4c0,9.94 -8.06,18 -18,18c-9.94,0 -18,-8.06 -18,-18c0,-9.94 8.06,-18 18,-18V27z"/>
+        <!-- Sparkles -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M40,42m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M68,56m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,35m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,63m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0"/>
+    </group>
+</vector> 

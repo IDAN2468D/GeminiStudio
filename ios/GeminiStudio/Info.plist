@@ -48,5 +48,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>אפליקציית Gemini Studio צריכה גישה לגלריה כדי לשמור תמונות שנוצרו</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>אפליקציית Gemini Studio צריכה גישה למיקרופון כדי להקליט שמע</string>
 </dict>
 </plist>
