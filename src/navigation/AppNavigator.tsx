@@ -11,7 +11,7 @@ import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AboutScreen from '../screens/AboutScreen';
 import ImageGenScreen from '../screens/ImageGenScreen';
-import LiveAudioScreen from '../screens/LiveAudioScreen';
+import StoryGeneratorScreen from '../screens/StoryGeneratorScreen';
 
 // Define types for the bottom tab navigator
 export type RootTabParamList = {
@@ -66,7 +66,16 @@ const BottomTabNavigator = () => {
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'בית' }} />
       <Tab.Screen name="Chat" component={ChatScreen} options={{ tabBarLabel: 'צ׳אט' }} />
       <Tab.Screen name="ImageGen" component={ImageGenScreen} options={{ tabBarLabel: 'תמונות' }} />
-      <Tab.Screen name="LiveAudio" component={LiveAudioScreen} options={{ tabBarLabel: 'הקלטה' }} />
+      <Tab.Screen
+        name="LiveAudio"
+        component={StoryGeneratorScreen}
+        options={{
+          tabBarLabel: 'יצירה',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="create-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: 'היסטוריה' }} />
     </Tab.Navigator>
   );

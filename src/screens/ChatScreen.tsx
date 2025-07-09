@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { launchImageLibrary } from 'react-native-image-picker'; // Added import
 import { saveToHistory } from '../utils/storage';
 import { GEMINI_API_KEY } from '@env';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 interface Message {
   id: string;
@@ -185,7 +186,7 @@ const ChatScreen = () => {
             <TouchableOpacity
               style={styles.copyButton}
               onPress={() => {
-                // Clipboard.setString(item.text); // Clipboard removed
+                Clipboard.setString(item.text);
                 showToast('הועתק!');
               }}
             >

@@ -17,6 +17,7 @@ import {
 import { getHistory, HistoryItem, clearHistory } from '../utils/storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import RNFetchBlob from 'rn-fetch-blob';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 const HistoryScreen = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -80,15 +81,12 @@ const HistoryScreen = () => {
 
     try {
       setIsDownloading(true);
-      
       const hasPermission = await requestStoragePermission();
       if (!hasPermission) {
         ToastAndroid.show('נדרשת הרשאה לשמירת תמונות', ToastAndroid.SHORT);
         return;
       }
-
       ToastAndroid.show('מתחיל הורדה...', ToastAndroid.SHORT);
-
       const date = new Date();
       const fileName = `gemini_studio_${Math.floor(date.getTime())}.png`;
       const { dirs } = RNFetchBlob.fs;
@@ -96,31 +94,40 @@ const HistoryScreen = () => {
         ios: dirs.DocumentDir,
         android: dirs.DownloadDir,
       });
-
-      const configOptions = {
-        fileCache: true,
-        addAndroidDownloads: {
-          useDownloadManager: true,
-          notification: true,
-          title: 'הורדת תמונה',
-          description: 'מוריד את התמונה...',
-          mime: 'image/png',
-          path: `${dirToSave}/${fileName}`,
-          mediaScannable: true,
-        },
-      };
-
-      const response = await RNFetchBlob.config(configOptions)
-        .fetch('GET', imageUrl)
-        .catch((error) => {
-          console.error('Download error:', error);
-          throw new Error('שגיאה בהורדת התמונה');
-        });
-
-      if (response.info().status === 200) {
+      const filePath = `${dirToSave}/${fileName}`;
+      if (imageUrl.startsWith('http')) {
+        // הורדה רגילה
+        const configOptions = {
+          fileCache: true,
+          addAndroidDownloads: {
+            useDownloadManager: true,
+            notification: true,
+            title: 'הורדת תמונה',
+            description: 'מוריד את התמונה...',
+            mime: 'image/png',
+            path: filePath,
+            mediaScannable: true,
+          },
+        };
+        const response = await RNFetchBlob.config(configOptions)
+          .fetch('GET', imageUrl)
+          .catch((error) => {
+            console.error('Download error:', error);
+            ToastAndroid.show('שגיאה בהורדה: ' + error.message, ToastAndroid.LONG);
+            throw new Error('שגיאה בהורדת התמונה');
+          });
+        if (response.info().status === 200) {
+          ToastAndroid.show('התמונה נשמרה בהצלחה בתיקיית ההורדות', ToastAndroid.LONG);
+        } else {
+          throw new Error(`שגיאה בהורדה: ${response.info().status}`);
+        }
+      } else if (imageUrl.startsWith('data:image')) {
+        // שמירה מ-base64
+        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+        await RNFetchBlob.fs.writeFile(filePath, base64Data, 'base64');
         ToastAndroid.show('התמונה נשמרה בהצלחה בתיקיית ההורדות', ToastAndroid.LONG);
       } else {
-        throw new Error(`שגיאה בהורדה: ${response.info().status}`);
+        ToastAndroid.show('פורמט תמונה לא נתמך', ToastAndroid.LONG);
       }
     } catch (error) {
       console.error('Download failed:', error);
@@ -168,6 +175,18 @@ const HistoryScreen = () => {
       ) : (
         <View style={styles.chatContainer}>
           <Text style={styles.chatText}>{item.content}</Text>
+          <TouchableOpacity
+            style={styles.copyBelowButton}
+            onPress={() => {
+              Clipboard.setString(item.content);
+              if (Platform.OS === 'android') {
+                ToastAndroid.show('הועתק!', ToastAndroid.SHORT);
+              }
+            }}
+          >
+            <Ionicons name="copy-outline" size={20} color="#2563EB" />
+            <Text style={styles.copyBelowButtonText}>העתק</Text>
+          </TouchableOpacity>
         </View>
       )}
       <Text style={styles.timestamp}>{item.timestamp}</Text>
@@ -306,13 +325,39 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   chatContainer: {
-    // Add appropriate styles for chat container
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
+    minHeight: 60,
+    position: 'relative',
   },
   chatText: {
     // Add appropriate styles for chat text
   },
   downloadButtonDisabled: {
     opacity: 0.5,
+  },
+  copyBelowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#E0E7FF',
+    elevation: 2,
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.10,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  copyBelowButtonText: {
+    color: '#2563EB',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 15,
   },
 });
 

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface HistoryItem {
   id: string;
-  type: 'chat' | 'image';
+  type: 'chat' | 'image' | 'story';
   content: string;
   prompt?: string;
   timestamp: number;

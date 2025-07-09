@@ -12,11 +12,13 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-native/new-app-screen": "0.80.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/native": "^7.1.13",
     "@react-navigation/stack": "^7.3.6",
+    "axios": "^1.10.0",
     "react": "19.1.0",
     "react-native": "0.80.0",
     "react-native-audio-recorder-player": "^3.6.13",
@@ -26,6 +28,7 @@
     "react-native-safe-area-context": "^5.5.0",
     "react-native-screens": "^4.11.1",
     "react-native-vector-icons": "^10.2.0",
+    "react-native-vision-camera": "^4.7.0",
     "rn-fetch-blob": "^0.12.0"
   },
   "devDependencies": {
