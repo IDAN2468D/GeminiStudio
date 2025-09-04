@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@google/genai": "^1.16.0",
     "@google/generative-ai": "^0.24.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-clipboard/clipboard": "^1.16.3",
@@ -25,6 +26,7 @@
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.26.0",
     "react-native-image-picker": "^8.2.1",
+    "react-native-linear-gradient": "^2.8.3",
     "react-native-reanimated": "^3.18.0",
     "react-native-safe-area-context": "^5.5.0",
     "react-native-screens": "^4.11.1",

@@ -1,250 +1,86 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ScrollView, Alert, ActivityIndicator 
-} from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
-import { saveToHistory } from '../utils/storage';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, Dimensions, SafeAreaView, StatusBar, Modal } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { useImageGenerator } from '../hooks/useImageGenerator';
 
-// Gemini API Key
 const API_KEY = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(API_KEY);
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const ImageGenScreen = () => {
-  // --- State לפיצ'ר יצירת תמונה מטקסט ---
+const ImageGenScreen: React.FC = () => {
   const [prompt, setPrompt] = useState('');
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [loadingPrompt, setLoadingPrompt] = useState(false);
-  const [errorPrompt, setErrorPrompt] = useState('');
-  const [saveSuccessPrompt, setSaveSuccessPrompt] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalImage, setModalImage] = useState('');
 
-  // --- State לפיצ'ר רטרו ---
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [base64Photo, setBase64Photo] = useState<string | null>(null);
-  const [loadingRetro, setLoadingRetro] = useState(false);
-  const [retroImages, setRetroImages] = useState<string[]>([]);
-
-  // --- פונקציה ליצירת תמונה מטקסט ---
-  const generateImageFromPrompt = async () => {
-    setErrorPrompt('');
-    setGeneratedImage(null);
-    setSaveSuccessPrompt(false);
-
-    if (!prompt.trim()) {
-      setErrorPrompt('נא להזין טקסט ליצירת תמונה');
-      return;
-    }
-
-    setLoadingPrompt(true);
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.4,
-              topK: 32,
-              topP: 1,
-              maxOutputTokens: 2048,
-              responseModalities: ["TEXT", "IMAGE"]
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const data = await response.json();
-      if (!data.candidates || data.candidates.length === 0) {
-        setErrorPrompt('לא התקבלה תמונה. נסה שוב או נסח את הטקסט אחרת.');
-        return;
-      }
-
-      const imagePart = data.candidates[0].content.parts.find(
-        (part: { inlineData?: { mimeType?: string; data: string } }) => part.inlineData?.mimeType?.startsWith('image/')
-      );
-
-      if (imagePart && imagePart.inlineData) {
-        const imageUri = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-        setGeneratedImage(imageUri);
-
-        try {
-          await saveToHistory({ type: 'image', content: imageUri, prompt });
-          setSaveSuccessPrompt(true);
-          Alert.alert('שמירה בוצעה בהצלחה', 'התמונה נשמרה בהיסטוריה', [{ text: 'אישור' }]);
-        } catch (saveError) {
-          console.error('Error saving to history:', saveError);
-          Alert.alert('שגיאה בשמירה', 'לא הצלחנו לשמור את התמונה בהיסטוריה', [{ text: 'אישור' }]);
-        }
-      } else {
-        setErrorPrompt('לא התקבלה תמונה בפורמט צפוי. נסה שוב או נסח את הטקסט אחרת.');
-      }
-    } catch (e) {
-      let errorMsg = 'שגיאה ביצירת תמונה.';
-      if (e instanceof Error) errorMsg += ' ' + e.message;
-      setErrorPrompt(errorMsg);
-    } finally {
-      setLoadingPrompt(false);
-    }
-  };
-
-  // --- פיצ'ר רטרו ---
-  const handleUpload = () => {
-    launchImageLibrary(
-      { mediaType: 'photo', includeBase64: true },
-      (response) => {
-        if (response.assets && response.assets.length > 0) {
-          setPhotoUri(response.assets[0].uri || null);
-          setBase64Photo(response.assets[0].base64 || null);
-        }
-      }
-    );
-  };
-
-  const generateRetro = async () => {
-    if (!base64Photo) return;
-    setLoadingRetro(true);
-    setRetroImages([]);
-
-    try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: `Generate retro portraits of this person in the styles of the 1920s, 1950s, and 1980s. Return ONLY the images as Base64 JPEGs. No text.`,
-              },
-              { inlineData: { mimeType: 'image/jpeg', data: base64Photo } },
-            ],
-          },
-        ],
-      });
-
-      const outputText = result.response.text();
-
-      const images = outputText
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 100)
-        .map(b64 => `data:image/jpeg;base64,${b64}`);
-
-      if (images.length === 0) {
-        Alert.alert('שגיאה', 'לא התקבלו תמונות רטרו. נסה שוב.');
-      } else {
-        setRetroImages(images);
-
-        // שמירה של כל התמונות בהיסטוריה
-        for (let i = 0; i < images.length; i++) {
-          await saveToHistory({ 
-            type: 'image', 
-            content: images[i], 
-            prompt: `Retro version ${i + 1} of: ${prompt || 'Uploaded photo'}` 
-          });
-        }
-        Alert.alert('שמירה בוצעה', 'תמונות הרטרו נשמרו בהיסטוריה');
-      }
-    } catch (err) {
-      console.error('Gemini error:', err);
-      Alert.alert('שגיאה', 'לא הצלחנו ליצור תמונות רטרו');
-    } finally {
-      setLoadingRetro(false);
-    }
-  };
+  const {
+    generatedImages, loading, error, saveSuccess, caption,
+    selectedFilter, setSelectedFilter, generateImages, shareImage, applyFilterStyle
+  } = useImageGenerator(API_KEY);
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <Text style={styles.title}>צור תמונה מטקסט / רטרו</Text>
+    <SafeAreaView style={{ flex:1, backgroundColor:'#f0f4f8' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#4f46e5" />
+      <ScrollView contentContainerStyle={{ flexGrow:1, paddingBottom:20 }} showsVerticalScrollIndicator={false}>
+        {/* HEADER */}
+        <LinearGradient colors={['#4f46e5', '#2563EB']} style={{ width:SCREEN_WIDTH-40, flexDirection:'row', alignItems:'center', padding:10, borderRadius:15, marginHorizontal:20, marginTop:30, shadowColor:"#000", shadowOffset:{width:0,height:5}, shadowOpacity:0.3, shadowRadius:5, elevation:6 }}>
+          <Icon name="image-outline" size={28} color="#fff" style={{ marginRight:10 }} />
+          <Text style={{ fontSize:26, fontWeight:'bold', color:'#fff'}}>צור תמונה מטקסט</Text>
+        </LinearGradient>
 
-        {/* --- יצירת תמונה מטקסט --- */}
-        <View style={styles.inputContainer}>
+        {/* INPUT */}
+        <View style={{ width:'90%', backgroundColor:'#fff', borderRadius:20, padding:20, marginTop:20, shadowColor:"#000", shadowOffset:{width:0,height:3}, shadowOpacity:0.1, shadowRadius:5, elevation:5, alignSelf:'center' }}>
           <TextInput
-            style={styles.input}
+            style={{ width:'100%', borderWidth:1, borderColor:'#d1d5db', borderRadius:12, padding:15, fontSize:16, backgroundColor:'#f9fafb', textAlignVertical:'top', minHeight:100 }}
             placeholder="הכנס תיאור לתמונה..."
+            placeholderTextColor="#999"
             value={prompt}
             onChangeText={setPrompt}
             multiline
           />
-          <TouchableOpacity
-            style={[styles.button, loadingPrompt && styles.buttonDisabled]}
-            onPress={generateImageFromPrompt}
-            disabled={loadingPrompt}
-          >
-            <Text style={styles.buttonText}>{loadingPrompt ? 'יוצר...' : 'צור תמונה'}</Text>
+          <TouchableOpacity style={{ backgroundColor:'#2563EB', padding:15, borderRadius:15, marginTop:10, alignItems:'center' }} onPress={()=>generateImages(prompt)} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={{ color:'#fff', fontSize:18, fontWeight:'bold'}}>צור תמונה</Text>}
           </TouchableOpacity>
         </View>
-        {errorPrompt ? <Text style={styles.errorText}>{errorPrompt}</Text> : null}
-        {saveSuccessPrompt && <Text style={styles.successText}>התמונה נשמרה בהצלחה בהיסטוריה</Text>}
-        {generatedImage && (
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: generatedImage }} style={styles.generatedImage} resizeMode="contain" />
+
+        {error ? <Text style={{ color:'#ef4444', textAlign:'center', marginTop:10 }}>{error}</Text> : null}
+        {saveSuccess ? <Text style={{ color:'#10b981', textAlign:'center', marginTop:10 }}>{caption}</Text> : null}
+
+        {/* FILTERS */}
+        <View style={{ flexDirection:'row', justifyContent:'center', marginTop:10 }}>
+          {(['none','grayscale','sepia','blur'] as const).map(f=>(
+            <TouchableOpacity key={f} onPress={()=>setSelectedFilter(f)} style={{ padding:8, backgroundColor:selectedFilter===f?'#2563EB':'#e2e8f0', marginHorizontal:5, borderRadius:10 }}>
+              <Text style={{ color:selectedFilter===f?'#fff':'#000' }}>{f}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* IMAGES GRID */}
+        <View style={{ flexDirection:'row', flexWrap:'wrap', justifyContent:'space-between', marginTop:15, paddingHorizontal:20 }}>
+          {generatedImages.map((uri, index)=>(
+            <View key={index} style={{ width:(SCREEN_WIDTH-60)/2, marginBottom:20 }}>
+              <TouchableOpacity onPress={()=>{setModalImage(uri); setModalVisible(true);}}>
+                <Image source={{ uri }} style={[{ width:'100%', height:150, borderRadius:12 }, applyFilterStyle(selectedFilter)]} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={()=>shareImage(uri)} style={{ position:'absolute', bottom:5, right:5, backgroundColor:'#2563EB', paddingHorizontal:8, paddingVertical:4, borderRadius:8 }}>
+                <Text style={{ color:'#fff', fontSize:12 }}>Share</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        {/* MODAL ZOOM */}
+        <Modal visible={modalVisible} transparent animationType="fade">
+          <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.9)', justifyContent:'center', alignItems:'center' }}>
+            <TouchableOpacity style={{ position:'absolute', top:50, right:20 }} onPress={()=>setModalVisible(false)}>
+              <Text style={{ color:'#fff', fontSize:20 }}>X</Text>
+            </TouchableOpacity>
+            <Image source={{ uri:modalImage }} style={{ width:'90%', height:'70%', borderRadius:15 }} resizeMode="contain"/>
           </View>
-        )}
+        </Modal>
 
-        {/* --- פיצ'ר רטרו --- */}
-        <Text style={[styles.title, { marginTop: 30 }]}>Retro Generator</Text>
-        <TouchableOpacity
-          onPress={handleUpload}
-          style={styles.uploadContainer}
-        >
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.uploadImage} resizeMode="cover" />
-          ) : (
-            <Text style={styles.uploadText}>📸 Upload Photo</Text>
-          )}
-        </TouchableOpacity>
-
-        {photoUri && (
-          <TouchableOpacity
-            style={styles.button}
-            onPress={generateRetro}
-          >
-            <Text style={styles.buttonText}>Generate Retro</Text>
-          </TouchableOpacity>
-        )}
-
-        {loadingRetro && <ActivityIndicator size="large" color="#FFD700" style={{ marginTop: 20 }} />}
-
-        {retroImages.length > 0 && (
-          <View style={{ marginTop: 20 }}>
-            <Text style={[styles.successText, { fontSize: 18, marginBottom: 10 }]}>Your Retro Versions</Text>
-            {retroImages.map((uri, i) => (
-              <Image
-                key={i}
-                source={{ uri }}
-                style={styles.uploadImage}
-                resizeMode="cover"
-              />
-            ))}
-          </View>
-        )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  scrollContainer: { flexGrow: 1 },
-  container: { flex: 1, backgroundColor: '#fff', padding: 20, alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#2563EB', marginBottom: 15, textAlign: 'center' },
-  inputContainer: { width: '100%', backgroundColor: '#f3f6fa', borderRadius: 15, padding: 15, marginBottom: 20 },
-  input: { width: '100%', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, padding: 12, fontSize: 16, backgroundColor: '#fff', textAlign: 'right', minHeight: 100, textAlignVertical: 'top', marginBottom: 10 },
-  button: { backgroundColor: '#2563EB', borderRadius: 10, padding: 15, alignItems: 'center', width: '100%', marginTop: 5 },
-  buttonDisabled: { backgroundColor: '#93c5fd' },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  errorText: { color: '#ef4444', fontSize: 14, marginBottom: 10, textAlign: 'center' },
-  successText: { color: '#10b981', fontSize: 14, marginBottom: 10, textAlign: 'center' },
-  imageContainer: { width: '100%', aspectRatio: 1, backgroundColor: '#f3f6fa', borderRadius: 15, overflow: 'hidden', marginTop: 10 },
-  generatedImage: { width: '100%', height: '100%' },
-  uploadContainer: { width: 250, height: 300, backgroundColor: '#f3f6fa', borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-  uploadImage: { width: '100%', height: '100%', borderRadius: 15, marginBottom: 10 },
-  uploadText: { fontSize: 18, color: '#555', textAlign: 'center' },
-});
 
 export default ImageGenScreen;
